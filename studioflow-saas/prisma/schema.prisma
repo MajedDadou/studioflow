@@ -1,0 +1,226 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Studio {
+  id             String              @id @default(cuid())
+  name           String
+  slug           String              @unique
+  createdAt      DateTime            @default(now())
+  settings       StudioSettings?
+  employees      Employee[]
+  customers      Customer[]
+  sessions       PhotoSession[]
+  orders         Order[]
+  products       Product[]
+  frames         Frame[]
+  retouchers     Retoucher[]
+  retouchTasks   RetouchTask[]
+  emailTemplates EmailTemplate[]
+  bridgeLogs     BridgeLog[]
+  activities     Activity[]
+  subscription   StudioSubscription?
+}
+
+model StudioSettings {
+  id                   String   @id @default(cuid())
+  studioId             String   @unique
+  orderIdFormat        String
+  defaultFolderPath    String
+  folderNamingFormat   String
+  workflowStatusesJson String
+  retouchTypesJson     String
+  photographersJson    String
+  captureTool          String
+  studio               Studio   @relation(fields: [studioId], references: [id], onDelete: Cascade)
+}
+
+model Employee {
+  id        String   @id @default(cuid())
+  studioId  String
+  name      String
+  email     String
+  role      String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  studio    Studio   @relation(fields: [studioId], references: [id], onDelete: Cascade)
+}
+
+model Customer {
+  id        String         @id @default(cuid())
+  studioId  String
+  name      String
+  phone     String?
+  email     String?
+  notes     String?
+  createdAt DateTime       @default(now())
+  studio    Studio         @relation(fields: [studioId], references: [id], onDelete: Cascade)
+  sessions  PhotoSession[]
+  orders    Order[]
+}
+
+model PhotoSession {
+  id           String   @id @default(cuid())
+  studioId     String
+  customerId   String
+  sessionType  String
+  photographer String
+  date         DateTime
+  folderPath   String
+  notes        String?
+  status       String
+  createdAt    DateTime @default(now())
+  studio       Studio   @relation(fields: [studioId], references: [id], onDelete: Cascade)
+  customer     Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  orders       Order[]
+}
+
+model Order {
+  id             String      @id @default(cuid())
+  studioId       String
+  sessionId      String
+  customerId     String
+  orderNumber    String      @unique
+  orderDate      DateTime    @default(now())
+  deadline       DateTime?
+  status         String
+  paymentStatus  String
+  totalPrice     Int         @default(0)
+  internalNotes  String?
+  customerNotes  String?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  studio         Studio      @relation(fields: [studioId], references: [id], onDelete: Cascade)
+  session        PhotoSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  customer       Customer    @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  items          OrderItem[]
+}
+
+model OrderItem {
+  id             String       @id @default(cuid())
+  orderId         String
+  imageRef        String
+  productId       String
+  frameId         String?
+  quantity        Int
+  size            String
+  variant         String
+  retouchType     String
+  retouchNotes    String?
+  urgent          Boolean      @default(false)
+  blackAndWhite   Boolean      @default(false)
+  status          String
+  createdAt       DateTime     @default(now())
+  order           Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product         Product      @relation(fields: [productId], references: [id])
+  frame           Frame?       @relation(fields: [frameId], references: [id])
+  retouchTask     RetouchTask?
+}
+
+model Product {
+  id        String      @id @default(cuid())
+  studioId  String
+  name      String
+  type      String
+  price     Int
+  active    Boolean     @default(true)
+  studio    Studio      @relation(fields: [studioId], references: [id], onDelete: Cascade)
+  orderItems OrderItem[]
+}
+
+model Frame {
+  id        String      @id @default(cuid())
+  studioId  String
+  name      String
+  size      String
+  color     String
+  price     Int
+  active    Boolean     @default(true)
+  studio    Studio      @relation(fields: [studioId], references: [id], onDelete: Cascade)
+  orderItems OrderItem[]
+}
+
+model Retoucher {
+  id        String        @id @default(cuid())
+  studioId  String
+  name      String
+  email     String
+  phone     String?
+  active    Boolean       @default(true)
+  notes     String?
+  studio    Studio        @relation(fields: [studioId], references: [id], onDelete: Cascade)
+  tasks     RetouchTask[]
+}
+
+model RetouchTask {
+  id                 String      @id @default(cuid())
+  studioId           String
+  orderItemId         String      @unique
+  assignedRetoucherId String?
+  retouchType         String
+  notes               String?
+  deadline            DateTime?
+  status              String
+  urgent              Boolean     @default(false)
+  createdAt           DateTime    @default(now())
+  studio              Studio      @relation(fields: [studioId], references: [id], onDelete: Cascade)
+  orderItem           OrderItem   @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  assignedRetoucher   Retoucher?  @relation(fields: [assignedRetoucherId], references: [id])
+}
+
+model EmailTemplate {
+  id        String   @id @default(cuid())
+  studioId  String
+  name      String
+  type      String
+  subject   String
+  body      String
+  active    Boolean  @default(true)
+  studio    Studio   @relation(fields: [studioId], references: [id], onDelete: Cascade)
+}
+
+model Activity {
+  id        String   @id @default(cuid())
+  studioId  String
+  message   String
+  createdAt DateTime @default(now())
+  studio    Studio   @relation(fields: [studioId], references: [id], onDelete: Cascade)
+}
+
+model BridgeLog {
+  id        String   @id @default(cuid())
+  studioId  String
+  action    String
+  status    String
+  message   String
+  createdAt DateTime @default(now())
+  studio    Studio   @relation(fields: [studioId], references: [id], onDelete: Cascade)
+}
+
+model SubscriptionPlan {
+  id               String               @id @default(cuid())
+  name             String               @unique
+  priceDkk         Int
+  description      String
+  featuresJson     String
+  orderLimit       Int?
+  bridgeAutomation Boolean              @default(false)
+  userLimit        Int
+  sortOrder        Int
+  subscriptions    StudioSubscription[]
+}
+
+model StudioSubscription {
+  id        String           @id @default(cuid())
+  studioId  String           @unique
+  planId    String
+  status    String
+  startedAt DateTime         @default(now())
+  studio    Studio           @relation(fields: [studioId], references: [id], onDelete: Cascade)
+  plan      SubscriptionPlan @relation(fields: [planId], references: [id])
+}

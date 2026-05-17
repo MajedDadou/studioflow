@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - StudioFlow{% endblock %}
+
+{% block content %}
+<section class="page-header">
+    <div>
+        <h1>Dashboard</h1>
+        <p>Live overblik over sessioner, ordrer og retouchstatus.</p>
+    </div>
+    <a class="button primary" href="{{ url_for('new_session') }}">Opret session</a>
+</section>
+
+<section class="summary-grid">
+    {% for card in summary %}
+        <article class="summary-card">
+            <span>{{ card.label }}</span>
+            <strong>{{ card.count }}</strong>
+        </article>
+    {% endfor %}
+</section>
+
+<section class="table-section">
+    <div class="section-title">
+        <h2>Alle ordrer og sessioner</h2>
+    </div>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Ordre ID</th>
+                    <th>Kunde</th>
+                    <th>Dato</th>
+                    <th>Fotograf</th>
+                    <th>Status</th>
+                    <th>Retouchør</th>
+                    <th>Mappe</th>
+                    <th>Handling</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in orders %}
+                    <tr>
+                        <td><strong>{{ order.order_number }}</strong></td>
+                        <td>{{ order.customer_name }}</td>
+                        <td>{{ order.session_date|date_da }}</td>
+                        <td>{{ order.photographer or "-" }}</td>
+                        <td><span class="status-pill {{ order.status|status_class }}">{{ order.status }}</span></td>
+                        <td>{{ order.retouchers or "-" }}</td>
+                        <td class="path-cell" title="{{ order.folder_path }}">{{ order.folder_path }}</td>
+                        <td>
+                            <div class="action-stack">
+                                <a class="button small" href="{{ url_for('order_detail', order_id=order.id) }}">Vis ordre</a>
+                                <a class="button small secondary" href="{{ url_for('customer_profile', customer_id=order.customer_id) }}">Åbn kundeprofil</a>
+                                <form class="inline-form" method="post" action="{{ url_for('update_status', order_id=order.id) }}">
+                                    <select name="status" aria-label="Rediger status">
+                                        {% for status in STATUSES %}
+                                            <option value="{{ status }}" {% if status == order.status %}selected{% endif %}>{{ status }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <button class="button small ghost" type="submit">Gem</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="8" class="empty">Ingen ordrer endnu.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

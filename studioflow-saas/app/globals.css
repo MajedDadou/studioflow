@@ -1,0 +1,48 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
+}
+
+body {
+  min-height: 100%;
+  background: #fbf7f2;
+  color: #1f2933;
+}
+
+input,
+textarea,
+select {
+  @apply rounded-xl border border-studio-line bg-white px-4 py-3 text-sm text-studio-ink outline-none transition focus:border-studio-orange focus:ring-4 focus:ring-orange-100;
+}
+
+label {
+  @apply grid gap-2 text-sm font-semibold text-slate-700;
+}
+
+input[type="checkbox"] {
+  @apply rounded border-studio-line p-0 accent-studio-orange focus:ring-orange-100;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.photo-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.7)),
+    radial-gradient(circle at 20% 20%, rgba(209, 87, 27, 0.18), transparent 24%),
+    radial-gradient(circle at 80% 10%, rgba(45, 91, 132, 0.16), transparent 24%),
+    linear-gradient(135deg, #fffaf5 0%, #f2ebe5 100%);
+}

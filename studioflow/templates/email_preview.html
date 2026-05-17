@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Send til retouchør - StudioFlow{% endblock %}
+
+{% block content %}
+<section class="page-header">
+    <div>
+        <h1>Send til retouchør</h1>
+        <p>{{ order.order_number }} · {{ order.customer_name }}</p>
+    </div>
+</section>
+
+<form class="form-panel" method="post">
+    <div class="form-grid">
+        <label>
+            Retouchør
+            <input name="retoucher" value="{{ form_data.get('retoucher', '') }}" placeholder="Nadhif">
+        </label>
+        <label>
+            Til
+            <input type="email" name="email_to" value="{{ form_data.get('email_to', '') }}" placeholder="retouch@example.dk">
+            <span class="helper">Hvis SMTP ikke er sat op, bliver emailen kun logget som klargjort.</span>
+        </label>
+        <label class="wide">
+            Emne
+            <input name="subject" value="{{ form_data.get('subject', '') }}">
+        </label>
+        <label class="wide">
+            Brødtekst
+            <textarea name="body" rows="14">{{ form_data.get('body', '') }}</textarea>
+        </label>
+    </div>
+    <div class="button-row">
+        <button class="button primary" name="action" value="send" type="submit">Send email</button>
+        <button class="button" name="action" value="log" type="submit">Gem som kladde / Log email</button>
+        <button class="button secondary" name="action" value="cancel" type="submit">Annuller</button>
+    </div>
+</form>
+{% endblock %}

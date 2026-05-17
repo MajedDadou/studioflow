@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Kundeprofil - StudioFlow{% endblock %}
+
+{% block content %}
+<section class="page-header">
+    <div>
+        <h1>{{ customer.name }}</h1>
+        <p>Kundeprofil og tidligere sessioner.</p>
+    </div>
+</section>
+
+<section class="detail-grid">
+    <article class="info-panel">
+        <h2>Kunde</h2>
+        <dl>
+            <dt>Telefon</dt><dd>{{ customer.phone or "-" }}</dd>
+            <dt>Email</dt><dd>{{ customer.email or "-" }}</dd>
+            <dt>Oprettet</dt><dd>{{ customer.created_at }}</dd>
+        </dl>
+    </article>
+    <article class="info-panel wide">
+        <h2>Noter</h2>
+        <p>{{ customer.notes or "Ingen kundenoter." }}</p>
+    </article>
+</section>
+
+<section class="table-section">
+    <div class="section-title">
+        <h2>Tidligere sessioner</h2>
+    </div>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Dato</th>
+                    <th>Session</th>
+                    <th>Fotograf</th>
+                    <th>Status</th>
+                    <th>Mappe</th>
+                    <th>Handling</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for session in sessions %}
+                    <tr>
+                        <td>{{ session.session_date|date_da }}</td>
+                        <td>{{ session.session_type or "-" }}</td>
+                        <td>{{ session.photographer or "-" }}</td>
+                        <td><span class="status-pill {{ session.status|status_class }}">{{ session.status }}</span></td>
+                        <td class="path-cell">{{ session.folder_path }}</td>
+                        <td>
+                            {% if session.order_id %}
+                                <a class="button small" href="{{ url_for('order_detail', order_id=session.order_id) }}">Åbn ordre</a>
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="6" class="empty">Ingen tidligere sessioner.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

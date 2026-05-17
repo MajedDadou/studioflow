@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Ordrefiler - StudioFlow{% endblock %}
+
+{% block content %}
+<section class="page-header">
+    <div>
+        <h1>Ordrefiler</h1>
+        <p>{{ order.order_number }} · {{ order.customer_name }}</p>
+    </div>
+</section>
+
+<section class="info-panel full">
+    <h2>Kundemappe</h2>
+    <p class="path-line">{{ order.folder_path }}</p>
+    <ul class="file-list">
+        {% for status in file_statuses %}
+            <li>
+                <span>{{ status.filename }}</span>
+                <strong>{{ "Findes" if status.exists else "Mangler" }}</strong>
+            </li>
+        {% endfor %}
+    </ul>
+</section>
+
+<section class="file-preview-grid">
+    {% for filename, content in previews.items() %}
+        <article class="file-preview">
+            <h2>{{ filename }}</h2>
+            <pre>{{ content if content else "Ingen fil fundet endnu." }}</pre>
+        </article>
+    {% endfor %}
+</section>
+
+<div class="button-row">
+    <form method="post">
+        <button class="button primary" type="submit">Regenerér filer</button>
+    </form>
+    <a class="button" href="{{ url_for('email_preview', order_id=order.id) }}">Send til retouchør</a>
+    <a class="button secondary" href="{{ url_for('dashboard') }}">Tilbage til dashboard</a>
+</div>
+{% endblock %}

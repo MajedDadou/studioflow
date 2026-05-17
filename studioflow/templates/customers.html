@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Kunder - StudioFlow{% endblock %}
+
+{% block content %}
+<section class="page-header">
+    <div>
+        <h1>Kunder</h1>
+        <p>Find tidligere kunder og åbn deres sessioner.</p>
+    </div>
+</section>
+
+<section class="table-section">
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Kunde</th>
+                    <th>Telefon</th>
+                    <th>Email</th>
+                    <th>Sessioner</th>
+                    <th>Seneste session</th>
+                    <th>Handling</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for customer in customers %}
+                    <tr>
+                        <td><strong>{{ customer.name }}</strong></td>
+                        <td>{{ customer.phone or "-" }}</td>
+                        <td>{{ customer.email or "-" }}</td>
+                        <td>{{ customer.session_count }}</td>
+                        <td>{{ customer.latest_session_date|date_da if customer.latest_session_date else "-" }}</td>
+                        <td><a class="button small" href="{{ url_for('customer_profile', customer_id=customer.id) }}">Åbn kundeprofil</a></td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="6" class="empty">Ingen kunder endnu.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

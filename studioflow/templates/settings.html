@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Indstillinger - StudioFlow{% endblock %}
+
+{% block content %}
+<section class="page-header">
+    <div>
+        <h1>Indstillinger</h1>
+        <p>Opsæt servermappe, retouchører og valgfri SMTP.</p>
+    </div>
+</section>
+
+<form class="form-panel" method="post">
+    <h2>Studio</h2>
+    <div class="form-grid">
+        <label>
+            Studionavn
+            <input name="studio_name" value="{{ settings.get('studio_name', '') }}">
+        </label>
+        <label>
+            Base servermappe
+            <input name="base_folder_path" value="{{ settings.get('base_folder_path', '') }}" placeholder="\\SERVER\Photos">
+            <span class="helper">StudioFlow skriver kun ordrefiler i mapper under denne base.</span>
+        </label>
+        <label>
+            Opret mappestruktur
+            <select name="enable_folder_creation">
+                <option value="0" {% if settings.get('enable_folder_creation') != '1' %}selected{% endif %}>Nej</option>
+                <option value="1" {% if settings.get('enable_folder_creation') == '1' %}selected{% endif %}>Ja</option>
+            </select>
+        </label>
+        <label>
+            Standard retouchører
+            <input name="default_retouchers" value="{{ settings.get('default_retouchers', '') }}">
+        </label>
+    </div>
+
+    <h2>Email / SMTP</h2>
+    <div class="form-grid">
+        <label>
+            SMTP host
+            <input name="smtp_host" value="{{ settings.get('smtp_host', '') }}">
+        </label>
+        <label>
+            SMTP port
+            <input name="smtp_port" value="{{ settings.get('smtp_port', '') }}">
+        </label>
+        <label>
+            SMTP brugernavn
+            <input name="smtp_username" value="{{ settings.get('smtp_username', '') }}">
+        </label>
+        <label>
+            SMTP password
+            <input type="password" name="smtp_password" value="{{ settings.get('smtp_password', '') }}">
+        </label>
+        <label>
+            SMTP afsender email
+            <input type="email" name="smtp_sender_email" value="{{ settings.get('smtp_sender_email', '') }}">
+        </label>
+        <label>
+            Database
+            <input value="{{ db_path }}" readonly>
+        </label>
+    </div>
+
+    <div class="button-row">
+        <button class="button primary" type="submit">Gem indstillinger</button>
+        <a class="button secondary" href="{{ url_for('dashboard') }}">Tilbage</a>
+    </div>
+</form>
+{% endblock %}

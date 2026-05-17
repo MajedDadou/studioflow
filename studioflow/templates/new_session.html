@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Opret ny session - StudioFlow{% endblock %}
+
+{% block content %}
+<section class="page-header">
+    <div>
+        <h1>Opret ny session</h1>
+        <p>Denne session forbindes til kundens mappe på serveren. Billederne vises stadig i Lightroom.</p>
+    </div>
+</section>
+
+<form class="form-panel" method="post">
+    <div class="form-grid">
+        <label>
+            Kundenavn
+            <input name="name" value="{{ form_data.get('name', '') }}" required>
+        </label>
+        <label>
+            Telefon
+            <input name="phone" value="{{ form_data.get('phone', '') }}">
+        </label>
+        <label>
+            Email
+            <input type="email" name="email" value="{{ form_data.get('email', '') }}">
+        </label>
+        <label>
+            Sessionsdato
+            <input type="date" name="session_date" value="{{ form_data.get('session_date', '') }}" required>
+        </label>
+        <label>
+            Sessionstype
+            <input name="session_type" value="{{ form_data.get('session_type', '') }}" placeholder="Familieshoot">
+        </label>
+        <label>
+            Fotograf
+            <input name="photographer" value="{{ form_data.get('photographer', '') }}" placeholder="Martin">
+        </label>
+        <label class="wide">
+            Servermappe
+            <input name="folder_path" value="{{ form_data.get('folder_path', '') }}" required placeholder="generated_test_server/Photos/2026-05-13 Familien Hansen">
+            <span class="helper">StudioFlow gemmer kun ordredetaljer og tekstfiler. Billedfiler flyttes eller ændres ikke.</span>
+        </label>
+        <label class="wide">
+            Noter
+            <textarea name="notes" rows="4">{{ form_data.get('notes', '') }}</textarea>
+        </label>
+    </div>
+    <div class="button-row">
+        <button class="button primary" type="submit">Opret session</button>
+        <a class="button secondary" href="{{ url_for('dashboard') }}">Annuller</a>
+    </div>
+</form>
+{% endblock %}

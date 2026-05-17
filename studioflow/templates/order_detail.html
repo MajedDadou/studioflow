@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block title %}{{ order.order_number }} - StudioFlow{% endblock %}
+
+{% block content %}
+<section class="page-header">
+    <div>
+        <h1>{{ order.order_number }}</h1>
+        <p>{{ order.customer_name }} · {{ order.session_date|date_da }} · {{ order.session_type or "Session" }}</p>
+    </div>
+    <span class="status-pill large {{ order.status|status_class }}">{{ order.status }}</span>
+</section>
+
+<section class="detail-grid">
+    <article class="info-panel">
+        <h2>Kunde</h2>
+        <dl>
+            <dt>Navn</dt><dd>{{ order.customer_name }}</dd>
+            <dt>Telefon</dt><dd>{{ order.phone or "-" }}</dd>
+            <dt>Email</dt><dd>{{ order.email or "-" }}</dd>
+        </dl>
+        <a class="button small secondary" href="{{ url_for('customer_profile', customer_id=order.customer_id) }}">Åbn kundeprofil</a>
+    </article>
+    <article class="info-panel">
+        <h2>Session</h2>
+        <dl>
+            <dt>Dato</dt><dd>{{ order.session_date|date_da }}</dd>
+            <dt>Fotograf</dt><dd>{{ order.photographer or "-" }}</dd>
+            <dt>Deadline</dt><dd>{{ order.deadline|date_da if order.deadline else "-" }}</dd>
+        </dl>
+    </article>
+    <article class="info-panel wide">
+        <h2>Servermappe</h2>
+        <p class="path-line">{{ order.folder_path }}</p>
+        {% if folder_found %}
+            <span class="folder-ok">Mappe fundet</span>
+        {% else %}
+            <span class="folder-missing">Mappe ikke fundet</span>
+        {% endif %}
+    </article>
+</section>
+
+<section class="actions-bar">
+    <a class="button primary" href="{{ url_for('new_item', order_id=order.id) }}">Tilføj billede</a>
+    <a class="button" href="{{ url_for('confirm_order', order_id=order.id) }}">Bekræft ordre</a>
+    <form method="post" action="{{ url_for('generated_files', order_id=order.id) }}">
+        <button class="button" type="submit">Generér ordrefiler</button>
+    </form>
+    <a class="button" href="{{ url_for('email_preview', order_id=order.id) }}">Send til retouchør</a>
+    <a class="button secondary" href="{{ url_for('dashboard') }}">Tilbage til dashboard</a>
+</section>
+
+<section class="table-section">
+    <div class="section-title">
+        <h2>Ordrelinjer</h2>
+    </div>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Billede</th>
+                    <th>Produkt</th>
+                    <th>Størrelse</th>
+                    <th>Ramme</th>
+                    <th>Antal</th>
+                    <th>Variant</th>
+                    <th>Retouch</th>
+                    <th>Retouchør</th>
+                    <th>Note</th>
+                    <th>Handling</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                    <tr>
+                        <td><strong>{{ item.image_filename }}</strong></td>
+                        <td>{{ item.product }}</td>
+                        <td>{{ item.size or "-" }}</td>
+                        <td>{{ item.frame or "Ingen ramme" }}</td>
+                        <td>{{ item.quantity }}</td>
+                        <td>{{ item.variant }}</td>
+                        <td>{{ item.retouch_type }}</td>
+                        <td>{{ item.retoucher or "-" }}</td>
+                        <td>{{ item.notes or "-" }}</td>
+                        <td><a class="button small secondary" href="{{ url_for('edit_item', order_id=order.id, item_id=item.id) }}">Rediger</a></td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="10" class="empty">Ingen billeder er tilføjet endnu.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section class="detail-grid">
+    <article class="info-panel">
+        <h2>Ordrefiler</h2>
+        <ul class="file-list">
+            {% for status in file_statuses %}
+                <li>
+                    <span>{{ status.filename }}</span>
+                    <strong>{{ "Findes" if status.exists else "Mangler" }}</strong>
+                </li>
+            {% endfor %}
+        </ul>
+        <a class="button small secondary" href="{{ url_for('generated_files', order_id=order.id) }}">Vis filer</a>
+    </article>
+    <article class="info-panel">
+        <h2>Emailstatus</h2>
+        {% if email_log %}
+            <p><strong>{{ email_log.status }}</strong></p>
+            <p>{{ email_log.created_at }}</p>
+            <p>{{ email_log.email_to or "Ingen modtager angivet" }}</p>
+        {% else %}
+            <p>Ingen email klargjort endnu.</p>
+        {% endif %}
+    </article>
+    <article class="info-panel">
+        <h2>Noter</h2>
+        <p>{{ order.notes or "Ingen ordrenoter." }}</p>
+    </article>
+</section>
+{% endblock %}

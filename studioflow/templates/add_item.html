@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} - StudioFlow{% endblock %}
+
+{% block content %}
+<section class="page-header">
+    <div>
+        <h1>{{ page_title }}</h1>
+        <p>Ordre {{ order.order_number }} · {{ order.customer_name }}</p>
+    </div>
+</section>
+
+<form class="form-panel" method="post">
+    <div class="form-grid">
+        <label>
+            Billednummer / filnavn
+            <input name="image_filename" value="{{ form_data.get('image_filename', '') }}" required placeholder="IMG_0043">
+        </label>
+        <label>
+            Produkt
+            <select name="product" required>
+                <option value="">Vælg produkt</option>
+                {% for option in products %}
+                    <option value="{{ option }}" {% if form_data.get('product') == option %}selected{% endif %}>{{ option }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>
+            Størrelse
+            <select name="size">
+                {% for option in sizes %}
+                    <option value="{{ option }}" {% if form_data.get('size') == option %}selected{% endif %}>{{ option }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>
+            Ramme
+            <select name="frame">
+                {% for option in frames %}
+                    <option value="{{ option }}" {% if form_data.get('frame') == option %}selected{% endif %}>{{ option }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>
+            Antal
+            <input type="number" min="1" name="quantity" value="{{ form_data.get('quantity', '1') }}" required>
+        </label>
+        <label>
+            Variant
+            <select name="variant" required>
+                <option value="">Vælg variant</option>
+                {% for option in variants %}
+                    <option value="{{ option }}" {% if form_data.get('variant') == option %}selected{% endif %}>{{ option }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>
+            Retouch
+            <select name="retouch_type" required>
+                <option value="">Vælg retouch</option>
+                {% for option in retouch_types %}
+                    <option value="{{ option }}" {% if form_data.get('retouch_type') == option %}selected{% endif %}>{{ option }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>
+            Retouchør
+            <select name="retoucher">
+                {% for option in retoucher_options %}
+                    <option value="{{ option }}" {% if form_data.get('retoucher') == option %}selected{% endif %}>{{ option }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label class="wide">
+            Note
+            <textarea name="notes" rows="4">{{ form_data.get('notes', '') }}</textarea>
+        </label>
+    </div>
+    <div class="button-row">
+        <button class="button primary" type="submit">Gem</button>
+        <a class="button secondary" href="{{ url_for('order_detail', order_id=order.id) }}">Annuller</a>
+    </div>
+</form>
+{% endblock %}

@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Bekræft ordre - StudioFlow{% endblock %}
+
+{% block content %}
+<section class="page-header">
+    <div>
+        <h1>Bekræft ordre</h1>
+        <p>Kontroller ordrelinjerne før ordren låses til retouch og produktion.</p>
+    </div>
+</section>
+
+<section class="info-panel full">
+    <dl class="compact-dl">
+        <dt>Ordre ID</dt><dd>{{ order.order_number }}</dd>
+        <dt>Kunde</dt><dd>{{ order.customer_name }}</dd>
+        <dt>Mappe</dt><dd class="path-line">{{ order.folder_path }}</dd>
+    </dl>
+</section>
+
+<div class="warning-box">
+    Når ordren bekræftes, opretter StudioFlow order_info, retouch_list og print_list.
+</div>
+
+<section class="item-card-grid">
+    {% for item in items %}
+        <article class="item-card">
+            <h2>{{ item.image_filename }}</h2>
+            <p>{{ item.product }} · {{ item.size or "-" }} · {{ item.quantity }} stk.</p>
+            <p>{{ item.variant }} · {{ item.retouch_type }} · {{ item.retoucher or "-" }}</p>
+            {% if item.notes %}
+                <p class="muted">{{ item.notes }}</p>
+            {% endif %}
+        </article>
+    {% else %}
+        <p class="empty">Ordren har ingen billeder endnu.</p>
+    {% endfor %}
+</section>
+
+<form class="button-row" method="post">
+    <button class="button primary" type="submit" {% if not items %}disabled{% endif %}>Bekræft ordre</button>
+    <a class="button secondary" href="{{ url_for('order_detail', order_id=order.id) }}">Rediger ordre</a>
+</form>
+{% endblock %}

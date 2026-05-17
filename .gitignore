@@ -1,0 +1,46 @@
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+dist/
+
+# Local environment files
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Local SQLite databases
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# Local generated/test output
+studioflow/generated_test_server/**
+!studioflow/generated_test_server/.gitkeep
+studioflow/backups/**
+!studioflow/backups/.gitkeep
+studioflow/data/**
+!studioflow/data/.gitkeep
+studioflow-saas/safe-test-folder/StudioFlow_Test/**
+!studioflow-saas/safe-test-folder/.gitkeep
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
