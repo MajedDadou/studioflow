@@ -28,6 +28,41 @@ function dateValue(value: FormDataEntryValue | null) {
   return new Date(`${raw}T12:00:00`);
 }
 
+function quantityValue(formData: FormData) {
+  const quantity = Number(formData.get("quantity") ?? 1);
+  if (!Number.isFinite(quantity) || quantity < 1) {
+    throw new Error("Quantity must be at least 1");
+  }
+  return Math.floor(quantity);
+}
+
+function imageReferenceList(value: FormDataEntryValue | null) {
+  const seen = new Set<string>();
+  return String(value ?? "")
+    .split(/[\s,;]+/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .filter((item) => {
+      const key = item.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+}
+
+function productNeedsSize(product: { name: string; type: string }) {
+  const label = `${product.name} ${product.type}`.toLowerCase();
+  return ["print", "frame", "framed", "canvas", "album"].some((token) => label.includes(token));
+}
+
+function sizeValue(formData: FormData, product: { name: string; type: string }) {
+  const size = optional(formData, "size") ?? "-";
+  if (productNeedsSize(product) && size === "-") {
+    throw new Error("Size is required for print, frame, canvas, and album products");
+  }
+  return size;
+}
+
 function jsonListFromTextarea(value: FormDataEntryValue | null) {
   return JSON.stringify(
     String(value ?? "")
@@ -145,37 +180,43 @@ export async function addOrderItem(formData: FormData) {
   const orderId = required(formData, "orderId");
   const order = await prisma.order.findUniqueOrThrow({ where: { id: orderId } });
   const imageRef = required(formData, "imageRef");
-  const quantity = Math.max(1, Number(formData.get("quantity") ?? 1));
+  const productId = required(formData, "productId");
+  const product = await prisma.product.findFirstOrThrow({ where: { id: productId, studioId: order.studioId, active: true } });
+  const quantity = quantityValue(formData);
   const retouchType = required(formData, "retouchType");
   const frameId = optional(formData, "frameId");
+  if (frameId) {
+    await prisma.frame.findFirstOrThrow({ where: { id: frameId, studioId: order.studioId, active: true } });
+  }
   const retoucherId = optional(formData, "retoucherId");
   const urgent = formData.get("urgent") === "on";
+  const retouchNotes = optional(formData, "retouchNotes");
 
   const item = await prisma.orderItem.create({
     data: {
       orderId,
       imageRef,
-      productId: required(formData, "productId"),
+      productId,
       frameId,
       quantity,
-      size: optional(formData, "size") ?? "-",
+      size: sizeValue(formData, product),
       variant: required(formData, "variant"),
       retouchType,
-      retouchNotes: optional(formData, "retouchNotes"),
+      retouchNotes,
       urgent,
       blackAndWhite: formData.get("blackAndWhite") === "on",
       status: "New"
     }
   });
 
-  if (retouchType !== "None" || urgent || optional(formData, "retouchNotes")) {
+  if (retouchType !== "None" || urgent || retouchNotes) {
     await prisma.retouchTask.create({
       data: {
         studioId: order.studioId,
         orderItemId: item.id,
         assignedRetoucherId: retoucherId,
         retouchType,
-        notes: optional(formData, "retouchNotes"),
+        notes: retouchNotes,
         deadline: order.deadline,
         urgent,
         status: "Not started"
@@ -186,6 +227,72 @@ export async function addOrderItem(formData: FormData) {
   await recalculateOrderTotal(orderId);
   await logActivity(order.studioId, `Image added to order ${order.orderNumber}: ${imageRef}`);
   revalidatePath(`/orders/${orderId}`);
+  redirect(`/orders/${orderId}`);
+}
+
+export async function bulkAddOrderItems(formData: FormData) {
+  const orderId = required(formData, "orderId");
+  const order = await prisma.order.findUniqueOrThrow({ where: { id: orderId } });
+  const imageRefs = imageReferenceList(formData.get("imageRefs"));
+  if (imageRefs.length === 0) {
+    throw new Error("Add at least one image filename or number");
+  }
+
+  const productId = required(formData, "productId");
+  const product = await prisma.product.findFirstOrThrow({ where: { id: productId, studioId: order.studioId, active: true } });
+  const frameId = optional(formData, "frameId");
+  if (frameId) {
+    await prisma.frame.findFirstOrThrow({ where: { id: frameId, studioId: order.studioId, active: true } });
+  }
+  const retoucherId = optional(formData, "retoucherId");
+  const quantity = quantityValue(formData);
+  const retouchType = required(formData, "retouchType");
+  const retouchNotes = optional(formData, "retouchNotes");
+  const urgent = formData.get("urgent") === "on";
+  const blackAndWhite = formData.get("blackAndWhite") === "on";
+  const size = sizeValue(formData, product);
+  const variant = required(formData, "variant");
+
+  await prisma.$transaction(async (tx) => {
+    for (const imageRef of imageRefs) {
+      const item = await tx.orderItem.create({
+        data: {
+          orderId,
+          imageRef,
+          productId,
+          frameId,
+          quantity,
+          size,
+          variant,
+          retouchType,
+          retouchNotes,
+          urgent,
+          blackAndWhite,
+          status: "New"
+        }
+      });
+
+      if (retouchType !== "None" || urgent || retouchNotes) {
+        await tx.retouchTask.create({
+          data: {
+            studioId: order.studioId,
+            orderItemId: item.id,
+            assignedRetoucherId: retoucherId,
+            retouchType,
+            notes: retouchNotes,
+            deadline: order.deadline,
+            urgent,
+            status: "Not started"
+          }
+        });
+      }
+    }
+  });
+
+  await recalculateOrderTotal(orderId);
+  await logActivity(order.studioId, `${imageRefs.length} images added to order ${order.orderNumber}`);
+  revalidatePath(`/orders/${orderId}`);
+  revalidatePath("/orders");
   redirect(`/orders/${orderId}`);
 }
 

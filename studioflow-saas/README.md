@@ -24,7 +24,7 @@ This version is a SaaS-style prototype that runs locally. It is configurable per
 - Customers with search, create, edit, and detail views
 - Photo sessions connected to customers and folder paths
 - Orders created from sessions
-- Selected image/order item entry with full filenames or image numbers
+- Single or bulk selected image/order item entry with full filenames or image numbers
 - Configurable products and frames
 - Retouch tasks with retoucher assignment and status changes
 - Retoucher management
@@ -78,6 +78,18 @@ Seed demo data:
 npm run seed
 ```
 
+Verify that the MVP is ready to open:
+
+```bash
+npm run smoke
+```
+
+Run a production build plus the smoke check:
+
+```bash
+npm run check
+```
+
 Start the app:
 
 ```bash
@@ -127,11 +139,24 @@ or the sidebar studio switcher to change the active demo studio. The app stores 
 3. Create a customer.
 4. Create a session connected to that customer.
 5. Create an order from the session.
-6. Add selected image items like `IMG_1023.CR3`, `IMG_1024.CR3`, `1025`, or `1026`.
+6. Add one selected image, or use bulk paste for selections like `IMG_1023.CR3`, `IMG_1024.CR3`, `1025`, or `1026`.
 7. Assign retouch instructions and a retoucher.
 8. Open Retouch Tasks and update task status.
 9. Open Email Templates and preview a retouch email.
 10. Open Local Bridge, generate a folder plan, then create safe test folders.
+
+## Daily studio workflow test
+
+Use this flow when showing the MVP to a studio owner:
+
+1. Start on `/dashboard` and check the MVP readiness panel.
+2. Create a customer and session.
+3. Create an order from the session.
+4. Use Bulk paste images to add several selected image references with the same product settings.
+5. Open the order and confirm the operational checklist is green.
+6. Preview the retouch email.
+7. Preview the Local Bridge folder plan in dry-run mode.
+8. Create test folders only inside `safe-test-folder/StudioFlow_Test`.
 
 ## Subscription plans
 

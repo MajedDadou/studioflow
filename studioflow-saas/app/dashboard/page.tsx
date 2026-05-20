@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { prisma } from "@/lib/prisma";
 import { getActiveStudio } from "@/lib/studio";
-import { deadlineState, formatDateTime, formatMoney } from "@/lib/format";
+import { deadlineState, formatDateTime, formatMoney, safeJsonList } from "@/lib/format";
 
 export default async function DashboardPage() {
   const studio = await getActiveStudio();
@@ -18,7 +18,23 @@ export default async function DashboardPage() {
   const urgentLimit = new Date(now);
   urgentLimit.setDate(now.getDate() + 3);
 
-  const [todaySessions, todaySessionList, activeOrders, waitingRetouch, urgentOrders, completedThisWeek, activities, recentOrders, actionOrders, retouchTasks] =
+  const [
+    todaySessions,
+    todaySessionList,
+    activeOrders,
+    waitingRetouch,
+    urgentOrders,
+    completedThisWeek,
+    activities,
+    recentOrders,
+    actionOrders,
+    retouchTasks,
+    productsCount,
+    retouchersCount,
+    emailTemplatesCount,
+    customersCount,
+    orderItemsCount
+  ] =
     await Promise.all([
       prisma.photoSession.count({ where: { studioId: studio.id, date: { gte: todayStart, lt: todayEnd } } }),
       prisma.photoSession.findMany({
@@ -60,10 +76,29 @@ export default async function DashboardPage() {
           assignedRetoucher: true,
           orderItem: { include: { order: { include: { customer: true } } } }
         }
-      })
+      }),
+      prisma.product.count({ where: { studioId: studio.id, active: true } }),
+      prisma.retoucher.count({ where: { studioId: studio.id, active: true } }),
+      prisma.emailTemplate.count({ where: { studioId: studio.id, active: true } }),
+      prisma.customer.count({ where: { studioId: studio.id } }),
+      prisma.orderItem.count({ where: { order: { studioId: studio.id } } })
     ]);
 
   const placeholderRevenue = recentOrders.reduce((sum, order) => sum + order.totalPrice, 0);
+  const workflowStatusCount = safeJsonList(studio.settings?.workflowStatusesJson).length;
+  const retouchTypeCount = safeJsonList(studio.settings?.retouchTypesJson).length;
+  const photographerCount = safeJsonList(studio.settings?.photographersJson).length;
+  const readinessItems = [
+    { label: "Products configured", done: productsCount > 0, detail: `${productsCount} active` },
+    { label: "Retouchers configured", done: retouchersCount > 0, detail: `${retouchersCount} active` },
+    { label: "Email templates ready", done: emailTemplatesCount > 0, detail: `${emailTemplatesCount} active` },
+    { label: "Workflow statuses configured", done: workflowStatusCount >= 4, detail: `${workflowStatusCount} statuses` },
+    { label: "Photographers configured", done: photographerCount > 0, detail: `${photographerCount} people` },
+    { label: "Retouch types configured", done: retouchTypeCount > 0, detail: `${retouchTypeCount} types` },
+    { label: "Demo/customer data available", done: customersCount > 0 && orderItemsCount > 0, detail: `${customersCount} customers, ${orderItemsCount} image items` },
+    { label: "Bridge safety mode", done: true, detail: "Dry-run and safe test folder only" }
+  ];
+  const readinessDone = readinessItems.filter((item) => item.done).length;
 
   return (
     <AppShell>
@@ -81,6 +116,31 @@ export default async function DashboardPage() {
         <MetricCard label="Completed this week" value={completedThisWeek} detail="Delivered orders" />
         <MetricCard label="Revenue placeholder" value={formatMoney(placeholderRevenue)} detail="From recent demo orders" />
       </div>
+
+      <section className="mt-6 rounded-2xl border border-studio-line bg-white p-5 shadow-soft">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <h2 className="text-lg font-black text-studio-ink">MVP readiness</h2>
+            <p className="mt-1 text-sm text-slate-600">A quick setup check before a studio owner tests the workflow.</p>
+          </div>
+          <div className="rounded-full bg-orange-50 px-4 py-2 text-sm font-black text-studio-orangeDark">
+            {readinessDone}/{readinessItems.length} ready
+          </div>
+        </div>
+        <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+          {readinessItems.map((item) => (
+            <div key={item.label} className="flex items-start gap-3 rounded-xl bg-studio-paper p-3 text-sm">
+              <span className={item.done ? "mt-0.5 font-black text-emerald-700" : "mt-0.5 font-black text-red-700"}>
+                {item.done ? "OK" : "Fix"}
+              </span>
+              <div>
+                <p className="font-bold text-studio-ink">{item.label}</p>
+                <p className="text-slate-500">{item.detail}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
 
       <section className="mt-6 rounded-2xl border border-studio-line bg-white p-5 shadow-soft">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

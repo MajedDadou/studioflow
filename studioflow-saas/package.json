@@ -10,6 +10,8 @@
     "db:push": "tsx prisma/init.ts",
     "db:init": "tsx prisma/init.ts",
     "seed": "prisma db seed",
+    "smoke": "tsx scripts/smoke-test.ts",
+    "check": "next build && tsx scripts/smoke-test.ts",
     "setup": "npm install && prisma generate && tsx prisma/init.ts && prisma db seed"
   },
   "dependencies": {

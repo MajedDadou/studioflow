@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { updateOrderStatus } from "@/app/actions";
 import { prisma } from "@/lib/prisma";
-import { formatDate, formatMoney, safeJsonList } from "@/lib/format";
+import { formatDate, formatDateTime, formatMoney, safeJsonList } from "@/lib/format";
 
 export default async function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -49,6 +49,11 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
     { label: "Retouch tasks assigned", done: retouchItems.length === 0 || unassignedRetouch === 0 },
     { label: "Payment not refunded", done: order.paymentStatus !== "Refunded" }
   ];
+  const activities = await prisma.activity.findMany({
+    where: { studioId: order.studioId, message: { contains: order.orderNumber } },
+    orderBy: { createdAt: "desc" },
+    take: 8
+  });
 
   return (
     <AppShell>
@@ -57,7 +62,8 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
         description={`${order.customer.name} - ${order.session.sessionType} - ${formatDate(order.orderDate)}`}
         actions={
           <>
-            <Button href={`/orders/${order.id}/items/new`} variant="primary">Add one selected image</Button>
+            <Button href={`/orders/${order.id}/items/bulk`} variant="primary">Bulk paste images</Button>
+            <Button href={`/orders/${order.id}/items/new`}>Add one image</Button>
             <Button href={`/email-templates?orderId=${order.id}`}>Preview retouch email</Button>
             <Button href={`/local-bridge?orderId=${order.id}`}>Preview Folder Plan</Button>
           </>
@@ -182,6 +188,23 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
           <p><span className="font-bold text-slate-500">Photographer:</span> {order.session.photographer}</p>
           <p><span className="font-bold text-slate-500">Internal notes:</span> {order.internalNotes ?? "-"}</p>
           <p><span className="font-bold text-slate-500">Customer notes:</span> {order.customerNotes ?? "-"}</p>
+        </div>
+      </section>
+
+      <section className="mt-6 rounded-2xl border border-studio-line bg-white p-6 shadow-soft">
+        <h2 className="text-lg font-black text-studio-ink">Order activity</h2>
+        <div className="mt-4 grid gap-3">
+          {activities.map((activity) => (
+            <div key={activity.id} className="rounded-xl bg-studio-paper p-4">
+              <p className="text-sm font-bold text-studio-ink">{activity.message}</p>
+              <p className="mt-1 text-xs text-slate-500">{formatDateTime(activity.createdAt)}</p>
+            </div>
+          ))}
+          {activities.length === 0 ? (
+            <p className="rounded-xl bg-studio-paper p-4 text-sm font-semibold text-slate-500">
+              No order-specific activity has been logged yet.
+            </p>
+          ) : null}
         </div>
       </section>
     </AppShell>

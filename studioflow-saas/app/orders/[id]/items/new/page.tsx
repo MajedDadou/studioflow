@@ -22,7 +22,11 @@ export default async function NewOrderItemPage({ params }: { params: Promise<{ i
 
   return (
     <AppShell>
-      <PageHeader title="Add one selected image" description={`Add one selected file or image number to ${order.orderNumber}. Repeat this for each customer choice.`} />
+      <PageHeader
+        title="Add one selected image"
+        description={`Add a single selected file or image number to ${order.orderNumber}. Use bulk paste when a customer has chosen several images with the same product settings.`}
+        actions={<Button href={`/orders/${order.id}/items/bulk`}>Bulk paste instead</Button>}
+      />
       <form action={addOrderItem} className="grid max-w-5xl gap-5 rounded-2xl border border-studio-line bg-white p-6 shadow-soft">
         <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm font-semibold text-blue-900">
           Accepts full filenames like IMG_1023.CR3 or simple image numbers like 1025. StudioFlow stores references only; it does not touch original image files.
@@ -34,13 +38,13 @@ export default async function NewOrderItemPage({ params }: { params: Promise<{ i
           </label>
           <label>Product
             <select name="productId" required>
-              {products.map((product) => <option key={product.id} value={product.id}>{product.name} · {formatMoney(product.price)}</option>)}
+              {products.map((product) => <option key={product.id} value={product.id}>{product.name} - {formatMoney(product.price)}</option>)}
             </select>
           </label>
           <label>Frame optional
             <select name="frameId" defaultValue="">
               <option value="">No frame</option>
-              {frames.map((frame) => <option key={frame.id} value={frame.id}>{frame.name} · {frame.size} · {formatMoney(frame.price)}</option>)}
+              {frames.map((frame) => <option key={frame.id} value={frame.id}>{frame.name} - {frame.size} - {formatMoney(frame.price)}</option>)}
             </select>
           </label>
           <label>Quantity<input name="quantity" type="number" min="1" defaultValue="1" required /></label>

@@ -16,6 +16,7 @@ cd studioflow-saas
 npm install
 npm run db:push
 npm run seed
+npm run smoke
 npm run dev
 ```
 
