@@ -16,7 +16,8 @@ const links = [
   ["Email Templates", "/email-templates"],
   ["Reports", "/reports"],
   ["Settings", "/settings"],
-  ["Pricing", "/pricing"]
+  ["Pricing", "/pricing"],
+  ["Billing", "/billing"]
 ];
 
 export function NavLinks() {

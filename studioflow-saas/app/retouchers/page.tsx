@@ -10,7 +10,7 @@ export default async function RetouchersPage() {
   const retouchers = await prisma.retoucher.findMany({
     where: { studioId: studio.id },
     orderBy: { name: "asc" },
-    include: { tasks: true }
+    include: { tasks: { where: { studioId: studio.id } } }
   });
 
   return (

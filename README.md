@@ -7,7 +7,13 @@ This repository currently contains two app versions:
 - `studioflow/` - original Flask + SQLite local MVP.
 - `studioflow-saas/` - newer Next.js + TypeScript + Tailwind + Prisma + SQLite SaaS-style MVP.
 
-The current product prototype to test visually is `studioflow-saas/`.
+The current product prototype to test visually and prepare for private beta is `studioflow-saas/`.
+
+For phone testing, deployment, PostgreSQL, seed data, smoke tests, and private-beta checklist, read:
+
+```text
+studioflow-saas/README.md
+```
 
 ## Run The Next.js MVP
 
@@ -25,6 +31,14 @@ Open:
 ```text
 http://localhost:3000
 ```
+
+To test from a phone on the same Wi-Fi, run the Next.js app with:
+
+```bash
+npm run dev -- --hostname 0.0.0.0
+```
+
+Then open `http://YOUR-LAPTOP-IP:3000` on the phone.
 
 ## Run The Flask MVP
 

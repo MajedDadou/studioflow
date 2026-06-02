@@ -1,6 +1,33 @@
-node_modules
-.next
+# Dependencies and build output
+node_modules/
+.next/
+out/
+dist/
+
+# Local environment files
+.env
 .env.local
+.env.*.local
+!.env.example
+
+# Local database files
 prisma/dev.db
 prisma/dev.db-journal
-safe-test-folder/StudioFlow_Test
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# Local bridge/test output
+safe-test-folder/StudioFlow_Test/
+safe-test-folder/**/*.txt
+
+# Deployment/local tooling
+.vercel/
+.railway/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

@@ -2,14 +2,13 @@
 
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
-import type { Studio } from "@prisma/client";
 import { switchStudio } from "@/app/actions";
 
 export function StudioSwitcher({
   studios,
   activeStudioId
 }: {
-  studios: Studio[];
+  studios: Array<{ id: string; name: string }>;
   activeStudioId: string;
 }) {
   const [pending, startTransition] = useTransition();
@@ -17,7 +16,7 @@ export function StudioSwitcher({
 
   return (
     <label className="text-xs font-bold uppercase tracking-wide text-slate-500">
-      Fake login studio
+      Active studio
       <select
         value={activeStudioId}
         disabled={pending}

@@ -1,24 +1,25 @@
-import { notFound } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/Button";
 import { PageHeader } from "@/components/PageHeader";
 import { addOrderItem } from "@/app/actions";
 import { prisma } from "@/lib/prisma";
+import { requireStudioRecord } from "@/lib/studio";
 import { formatMoney, safeJsonList } from "@/lib/format";
 
 export default async function NewOrderItemPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const order = await prisma.order.findUnique({
-    where: { id },
-    include: { studio: { include: { settings: true } }, customer: true }
-  });
-  if (!order) notFound();
+  const { studio, record: order } = await requireStudioRecord((studioId) =>
+    prisma.order.findFirst({
+      where: { id, studioId },
+      include: { customer: true }
+    })
+  );
   const [products, frames, retouchers] = await Promise.all([
     prisma.product.findMany({ where: { studioId: order.studioId, active: true }, orderBy: { name: "asc" } }),
     prisma.frame.findMany({ where: { studioId: order.studioId, active: true }, orderBy: { name: "asc" } }),
     prisma.retoucher.findMany({ where: { studioId: order.studioId, active: true }, orderBy: { name: "asc" } })
   ]);
-  const retouchTypes = safeJsonList(order.studio.settings?.retouchTypesJson, ["None", "Standard", "Advanced"]);
+  const retouchTypes = safeJsonList(studio.settings?.retouchTypesJson, ["None", "Standard", "Advanced"]);
 
   return (
     <AppShell>
@@ -28,6 +29,11 @@ export default async function NewOrderItemPage({ params }: { params: Promise<{ i
         actions={<Button href={`/orders/${order.id}/items/bulk`}>Bulk paste instead</Button>}
       />
       <form action={addOrderItem} className="grid max-w-5xl gap-5 rounded-2xl border border-studio-line bg-white p-6 shadow-soft">
+        {products.length === 0 ? (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold text-amber-900">
+            Add at least one active product before adding selected images to an order.
+          </div>
+        ) : null}
         <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm font-semibold text-blue-900">
           Accepts full filenames like IMG_1023.CR3 or simple image numbers like 1025. StudioFlow stores references only; it does not touch original image files.
         </div>
@@ -78,7 +84,7 @@ export default async function NewOrderItemPage({ params }: { params: Promise<{ i
         </div>
         <label>Retouch notes<textarea name="retouchNotes" rows={5} placeholder="Remove mark on shirt, clean background, natural skin cleanup" /></label>
         <div className="flex gap-2">
-          <Button type="submit" variant="primary">Add selected image</Button>
+          <Button type="submit" variant="primary" disabled={products.length === 0}>Add selected image</Button>
           <Button href={`/orders/${order.id}`}>Cancel</Button>
         </div>
       </form>

@@ -1,39 +1,51 @@
-import { notFound } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/Button";
 import { DeadlineBadge } from "@/components/DeadlineBadge";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
-import { updateOrderStatus } from "@/app/actions";
+import { cancelOrderItem, updateOrderStatus } from "@/app/actions";
 import { prisma } from "@/lib/prisma";
+import { requireStudioRecord } from "@/lib/studio";
 import { formatDate, formatDateTime, formatMoney, safeJsonList } from "@/lib/format";
 
 export default async function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const order = await prisma.order.findUnique({
-    where: { id },
-    include: {
-      studio: { include: { settings: true } },
-      customer: true,
-      session: true,
-      items: {
-        include: {
-          product: true,
-          frame: true,
-          retouchTask: { include: { assignedRetoucher: true } }
-        },
-        orderBy: { createdAt: "asc" }
+  const { studio, record: order } = await requireStudioRecord((studioId) =>
+    prisma.order.findFirst({
+      where: { id, studioId },
+      include: {
+        customer: true,
+        session: true,
+        items: {
+          include: {
+            product: true,
+            frame: true,
+            retouchTask: { include: { assignedRetoucher: true } }
+          },
+          orderBy: { createdAt: "asc" }
+        }
       }
-    }
-  });
-  if (!order) notFound();
-  const statuses = safeJsonList(order.studio.settings?.workflowStatusesJson, []);
-  const retouchItems = order.items.filter((item) => item.retouchType !== "None");
+    })
+  );
+  const statuses = safeJsonList(studio.settings?.workflowStatusesJson, [
+    "Draft",
+    "New",
+    "Waiting for files",
+    "Waiting for retouch",
+    "In retouch",
+    "Ready for review",
+    "Ready for delivery",
+    "Delivered",
+    "Cancelled"
+  ]);
+  const activeItems = order.items.filter((item) => item.status !== "Cancelled" && item.status !== "Inactive");
+  const inactiveItems = order.items.length - activeItems.length;
+  const retouchItems = activeItems.filter((item) => item.retouchType !== "None");
   const unassignedRetouch = retouchItems.filter((item) => !item.retouchTask?.assignedRetoucher).length;
-  const urgentItems = order.items.filter((item) => item.urgent).length;
+  const urgentItems = activeItems.filter((item) => item.urgent).length;
   const hasFolderPath = Boolean(order.session.folderPath.trim());
   const nextStep =
-    order.items.length === 0
+    activeItems.length === 0
       ? "Add selected images before this can become a usable studio order."
       : unassignedRetouch > 0
         ? "Assign a retoucher before sending the handoff."
@@ -45,7 +57,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
   const checklist = [
     { label: "Customer connected", done: Boolean(order.customerId) },
     { label: "Session folder path present", done: hasFolderPath },
-    { label: "Selected images added", done: order.items.length > 0 },
+    { label: "Active selected images added", done: activeItems.length > 0 },
     { label: "Retouch tasks assigned", done: retouchItems.length === 0 || unassignedRetouch === 0 },
     { label: "Payment not refunded", done: order.paymentStatus !== "Refunded" }
   ];
@@ -64,6 +76,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
           <>
             <Button href={`/orders/${order.id}/items/bulk`} variant="primary">Bulk paste images</Button>
             <Button href={`/orders/${order.id}/items/new`}>Add one image</Button>
+            <Button href={`/orders/${order.id}/edit`}>Edit Order</Button>
             <Button href={`/email-templates?orderId=${order.id}`}>Preview retouch email</Button>
             <Button href={`/local-bridge?orderId=${order.id}`}>Preview Folder Plan</Button>
           </>
@@ -131,7 +144,8 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
         <div className="rounded-2xl border border-studio-line bg-white p-5 shadow-soft">
           <h2 className="text-lg font-black text-studio-ink">Studio handoff summary</h2>
           <div className="mt-4 grid gap-3 text-sm text-slate-700">
-            <p><span className="font-bold text-slate-500">Selected images:</span> {order.items.length}</p>
+            <p><span className="font-bold text-slate-500">Active selected images:</span> {activeItems.length}</p>
+            <p><span className="font-bold text-slate-500">Cancelled/inactive items:</span> {inactiveItems}</p>
             <p><span className="font-bold text-slate-500">Retouch items:</span> {retouchItems.length}</p>
             <p><span className="font-bold text-slate-500">Unassigned retouch:</span> {unassignedRetouch}</p>
             <p><span className="font-bold text-slate-500">Urgent image items:</span> {urgentItems}</p>
@@ -145,7 +159,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
           <h2 className="text-lg font-black text-studio-ink">Selected images and order items</h2>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1080px] text-sm">
+          <table className="w-full min-w-[1280px] text-sm">
             <thead className="bg-studio-paper text-left text-xs uppercase text-slate-500">
               <tr>
                 <th className="px-5 py-3">Image</th>
@@ -153,28 +167,41 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                 <th className="px-5 py-3">Frame</th>
                 <th className="px-5 py-3">Qty</th>
                 <th className="px-5 py-3">Variant</th>
+                <th className="px-5 py-3">Status</th>
                 <th className="px-5 py-3">Retouch</th>
                 <th className="px-5 py-3">Retoucher</th>
                 <th className="px-5 py-3">Urgent</th>
                 <th className="px-5 py-3">Notes</th>
+                <th className="px-5 py-3">Action</th>
               </tr>
             </thead>
             <tbody>
               {order.items.map((item) => (
-                <tr key={item.id} className="border-t border-studio-line">
+                <tr key={item.id} className={item.status === "Cancelled" || item.status === "Inactive" ? "border-t border-studio-line bg-stone-50 text-slate-500" : "border-t border-studio-line"}>
                   <td className="px-5 py-4 font-bold">{item.imageRef}</td>
                   <td className="px-5 py-4">{item.product.name}<br /><span className="text-xs text-slate-500">{item.size}</span></td>
                   <td className="px-5 py-4">{item.frame?.name ?? "-"}</td>
                   <td className="px-5 py-4">{item.quantity}</td>
                   <td className="px-5 py-4">{item.variant}{item.blackAndWhite ? " - B/W" : ""}</td>
+                  <td className="px-5 py-4"><StatusBadge status={item.status} /></td>
                   <td className="px-5 py-4">{item.retouchType}</td>
                   <td className="px-5 py-4">{item.retouchTask?.assignedRetoucher?.name ?? "-"}</td>
                   <td className="px-5 py-4">{item.urgent ? "Yes" : "No"}</td>
                   <td className="px-5 py-4 max-w-xs">{item.retouchNotes ?? "-"}</td>
+                  <td className="px-5 py-4">
+                    <div className="flex flex-wrap gap-2">
+                      <Button href={`/orders/${order.id}/items/${item.id}/edit`} className="min-h-9 px-3 py-2">Edit</Button>
+                      {item.status !== "Cancelled" && item.status !== "Inactive" ? (
+                        <form action={cancelOrderItem.bind(null, item.id)}>
+                          <Button type="submit" variant="danger" className="min-h-9 px-3 py-2">Cancel item</Button>
+                        </form>
+                      ) : null}
+                    </div>
+                  </td>
                 </tr>
               ))}
               {order.items.length === 0 ? (
-                <tr><td colSpan={9} className="px-5 py-10 text-center text-sm font-semibold text-slate-500">No selected images yet.</td></tr>
+                <tr><td colSpan={11} className="px-5 py-10 text-center text-sm font-semibold text-slate-500">No selected images yet. Add one image or use bulk paste to build the order.</td></tr>
               ) : null}
             </tbody>
           </table>
@@ -182,7 +209,10 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
       </section>
 
       <section className="mt-6 rounded-2xl border border-studio-line bg-white p-6 shadow-soft">
-        <h2 className="text-lg font-black text-studio-ink">Order summary</h2>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h2 className="text-lg font-black text-studio-ink">Order summary</h2>
+          <Button href={`/orders/${order.id}/edit`}>Edit notes and payment</Button>
+        </div>
         <div className="mt-4 grid gap-3 text-sm md:grid-cols-2">
           <p><span className="font-bold text-slate-500">Folder:</span> <span className="break-all">{order.session.folderPath}</span></p>
           <p><span className="font-bold text-slate-500">Photographer:</span> {order.session.photographer}</p>

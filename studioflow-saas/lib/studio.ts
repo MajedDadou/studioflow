@@ -1,40 +1,28 @@
-import { cookies } from "next/headers";
-import { prisma } from "@/lib/prisma";
+import { requireActiveStudio, requireAuthContext } from "@/lib/auth";
 
-export const STUDIO_COOKIE = "studioflow_studio";
+export {
+  STUDIO_COOKIE,
+  USER_COOKIE,
+  createAuditLog,
+  founderAdminEmails,
+  isFounderAdminEmail,
+  requireActiveStudio,
+  requireCurrentUser,
+  requireFounderAdmin,
+  requireRole,
+  requireStudioMembership,
+  requireStudioRecord
+} from "@/lib/auth";
 
 export async function getStudios() {
-  return prisma.studio.findMany({
-    orderBy: { name: "asc" },
-    include: {
-      subscription: { include: { plan: true } }
-    }
-  });
+  const context = await requireAuthContext();
+  return context.memberships.map((membership) => membership.studio);
 }
 
 export async function getActiveStudio() {
-  const cookieStore = await cookies();
-  const studioId = cookieStore.get(STUDIO_COOKIE)?.value;
-  const studio =
-    (studioId &&
-      (await prisma.studio.findUnique({
-        where: { id: studioId },
-        include: {
-          settings: true,
-          subscription: { include: { plan: true } }
-        }
-      }))) ||
-    (await prisma.studio.findFirst({
-      orderBy: { name: "asc" },
-      include: {
-        settings: true,
-        subscription: { include: { plan: true } }
-      }
-    }));
+  return requireActiveStudio();
+}
 
-  if (!studio) {
-    throw new Error("No studio found. Run `npm run seed` first.");
-  }
-
-  return studio;
+export async function getActiveStudioContext() {
+  return requireAuthContext();
 }

@@ -7,6 +7,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { prisma } from "@/lib/prisma";
 import { getActiveStudio } from "@/lib/studio";
 import { deadlineState, formatDateTime, formatMoney, safeJsonList } from "@/lib/format";
+import { activeRetouchStatuses } from "@/lib/retouch";
 
 export default async function DashboardPage() {
   const studio = await getActiveStudio();
@@ -29,6 +30,10 @@ export default async function DashboardPage() {
     recentOrders,
     actionOrders,
     retouchTasks,
+    retouchOpenTasks,
+    retouchUrgentTasks,
+    retouchOverdueTasks,
+    retouchUnassignedTasks,
     productsCount,
     retouchersCount,
     emailTemplatesCount,
@@ -40,7 +45,7 @@ export default async function DashboardPage() {
       prisma.photoSession.findMany({
         where: { studioId: studio.id, date: { gte: todayStart, lt: todayEnd } },
         orderBy: { date: "asc" },
-        include: { customer: true, orders: true }
+        include: { customer: true, orders: { where: { studioId: studio.id } } }
       }),
       prisma.order.count({ where: { studioId: studio.id, status: { notIn: ["Delivered", "Cancelled"] } } }),
       prisma.order.count({ where: { studioId: studio.id, status: { in: ["Waiting for retouch", "In retouch"] } } }),
@@ -76,6 +81,14 @@ export default async function DashboardPage() {
           assignedRetoucher: true,
           orderItem: { include: { order: { include: { customer: true } } } }
         }
+      }),
+      prisma.retouchTask.count({ where: { studioId: studio.id, status: { in: activeRetouchStatuses } } }),
+      prisma.retouchTask.count({ where: { studioId: studio.id, status: { in: activeRetouchStatuses }, urgent: true } }),
+      prisma.retouchTask.count({
+        where: { studioId: studio.id, status: { in: activeRetouchStatuses }, deadline: { lt: todayStart } }
+      }),
+      prisma.retouchTask.count({
+        where: { studioId: studio.id, status: { in: activeRetouchStatuses }, assignedRetoucherId: null }
       }),
       prisma.product.count({ where: { studioId: studio.id, active: true } }),
       prisma.retoucher.count({ where: { studioId: studio.id, active: true } }),
@@ -231,10 +244,34 @@ export default async function DashboardPage() {
         </section>
 
         <section className="rounded-2xl border border-studio-line bg-white p-5 shadow-soft">
-          <h2 className="text-lg font-black text-studio-ink">Retouch load</h2>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-lg font-black text-studio-ink">Retouch workload</h2>
+              <p className="mt-1 text-sm text-slate-600">Open task pressure, assignment gaps, and urgent edits.</p>
+            </div>
+            <Button href="/retouch">Open Queue</Button>
+          </div>
+          <div className="mt-4 grid gap-2 sm:grid-cols-2">
+            <div className="rounded-xl bg-studio-paper p-3">
+              <p className="text-xs font-bold uppercase text-slate-500">Open</p>
+              <p className="text-2xl font-black text-studio-ink">{retouchOpenTasks}</p>
+            </div>
+            <div className="rounded-xl bg-red-50 p-3">
+              <p className="text-xs font-bold uppercase text-red-700">Urgent</p>
+              <p className="text-2xl font-black text-red-700">{retouchUrgentTasks}</p>
+            </div>
+            <div className="rounded-xl bg-red-50 p-3">
+              <p className="text-xs font-bold uppercase text-red-700">Overdue</p>
+              <p className="text-2xl font-black text-red-700">{retouchOverdueTasks}</p>
+            </div>
+            <div className="rounded-xl bg-amber-50 p-3">
+              <p className="text-xs font-bold uppercase text-amber-800">Unassigned</p>
+              <p className="text-2xl font-black text-amber-800">{retouchUnassignedTasks}</p>
+            </div>
+          </div>
           <div className="mt-4 grid gap-3">
             {retouchTasks.map((task) => (
-              <a key={task.id} href={`/orders/${task.orderItem.order.id}`} className="rounded-xl bg-studio-paper p-4 transition hover:ring-2 hover:ring-orange-100">
+              <a key={task.id} href={`/retouch/${task.id}`} className="rounded-xl bg-studio-paper p-4 transition hover:ring-2 hover:ring-orange-100">
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-sm font-bold text-studio-ink">{task.orderItem.imageRef}</p>
                   {task.urgent ? <span className="rounded-full bg-red-50 px-2.5 py-1 text-xs font-black text-red-700">Urgent</span> : null}

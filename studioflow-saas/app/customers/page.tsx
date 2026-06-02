@@ -21,7 +21,10 @@ export default async function CustomersPage({ searchParams }: { searchParams?: P
         : undefined
     },
     orderBy: { createdAt: "desc" },
-    include: { sessions: true, orders: true }
+    include: {
+      sessions: { where: { studioId: studio.id } },
+      orders: { where: { studioId: studio.id } }
+    }
   });
 
   return (
@@ -31,10 +34,18 @@ export default async function CustomersPage({ searchParams }: { searchParams?: P
         description="Search customers, open their history, or create a new customer before a session."
         actions={<Button href="/customers/new" variant="primary">New Customer</Button>}
       />
-      <form className="mb-4 flex max-w-xl gap-2">
-        <input name="q" defaultValue={query} placeholder="Search customers by name, email, or phone" className="flex-1" />
-        <Button type="submit">Search</Button>
-      </form>
+      <section className="mb-4 rounded-2xl border border-studio-line bg-white p-5 shadow-soft">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <h2 className="text-lg font-black text-studio-ink">Customer desk</h2>
+            <p className="mt-1 text-sm text-slate-600">{customers.length} customers match the current search.</p>
+          </div>
+          <form className="flex w-full max-w-2xl gap-2">
+            <input name="q" defaultValue={query} placeholder="Search by name, email, or phone" className="flex-1" />
+            <Button type="submit" variant="primary">Search</Button>
+          </form>
+        </div>
+      </section>
       <section className="overflow-hidden rounded-2xl border border-studio-line bg-white shadow-soft">
         <table className="w-full min-w-[760px] text-sm">
           <thead className="bg-studio-paper text-left text-xs uppercase text-slate-500">
@@ -57,7 +68,12 @@ export default async function CustomersPage({ searchParams }: { searchParams?: P
                 <td className="px-5 py-4">{customer.sessions.length}</td>
                 <td className="px-5 py-4">{customer.orders.length}</td>
                 <td className="px-5 py-4">{formatDate(customer.createdAt)}</td>
-                <td className="px-5 py-4"><Button href={`/customers/${customer.id}`} className="min-h-9 px-3 py-2">View</Button></td>
+                <td className="px-5 py-4">
+                  <div className="flex gap-2">
+                    <Button href={`/customers/${customer.id}`} className="min-h-9 px-3 py-2">View</Button>
+                    <Button href={`/sessions/new?customerId=${customer.id}`} className="min-h-9 px-3 py-2">New Session</Button>
+                  </div>
+                </td>
               </tr>
             ))}
             {customers.length === 0 ? (

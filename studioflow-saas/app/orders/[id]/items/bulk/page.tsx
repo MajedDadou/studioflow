@@ -1,25 +1,26 @@
-import { notFound } from "next/navigation";
 import { bulkAddOrderItems } from "@/app/actions";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/Button";
 import { PageHeader } from "@/components/PageHeader";
 import { prisma } from "@/lib/prisma";
+import { requireStudioRecord } from "@/lib/studio";
 import { formatMoney, safeJsonList } from "@/lib/format";
 
 export default async function BulkOrderItemsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const order = await prisma.order.findUnique({
-    where: { id },
-    include: { studio: { include: { settings: true } }, customer: true, items: true }
-  });
-  if (!order) notFound();
+  const { studio, record: order } = await requireStudioRecord((studioId) =>
+    prisma.order.findFirst({
+      where: { id, studioId },
+      include: { customer: true, items: true }
+    })
+  );
 
   const [products, frames, retouchers] = await Promise.all([
     prisma.product.findMany({ where: { studioId: order.studioId, active: true }, orderBy: { name: "asc" } }),
     prisma.frame.findMany({ where: { studioId: order.studioId, active: true }, orderBy: { name: "asc" } }),
     prisma.retoucher.findMany({ where: { studioId: order.studioId, active: true }, orderBy: { name: "asc" } })
   ]);
-  const retouchTypes = safeJsonList(order.studio.settings?.retouchTypesJson, ["None", "Standard", "Advanced"]);
+  const retouchTypes = safeJsonList(studio.settings?.retouchTypesJson, ["None", "Standard", "Advanced"]);
 
   return (
     <AppShell>
@@ -29,6 +30,11 @@ export default async function BulkOrderItemsPage({ params }: { params: Promise<{
       />
 
       <form action={bulkAddOrderItems} className="grid max-w-6xl gap-5 rounded-2xl border border-studio-line bg-white p-6 shadow-soft">
+        {products.length === 0 ? (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold text-amber-900">
+            Add at least one active product before bulk adding selected images.
+          </div>
+        ) : null}
         <div className="grid gap-4 lg:grid-cols-[1.25fr_0.75fr]">
           <div className="rounded-xl border border-orange-200 bg-orange-50 p-4 text-sm text-studio-ink">
             <p className="font-black">Fast entry for a customer selection session</p>
@@ -130,7 +136,7 @@ export default async function BulkOrderItemsPage({ params }: { params: Promise<{
         </label>
 
         <div className="flex flex-wrap gap-2">
-          <Button type="submit" variant="primary">Add pasted images</Button>
+          <Button type="submit" variant="primary" disabled={products.length === 0}>Add pasted images</Button>
           <Button href={`/orders/${order.id}`}>Cancel</Button>
         </div>
       </form>
